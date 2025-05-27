@@ -164,6 +164,10 @@ def view_operations():
     ops = list(operations.find({}, {'_id': 0, 'entity': 1, 'operation': 1, 'user_id': 1, 'timestamp': 1}))
     return jsonify({'operations': ops}), 200
 
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 @app.route('/unv_dr', methods=['GET'])
 def get_all_unv_drs():
     unv_dr_list = list(unv_drs.find({}, {'_id': 1, 'name': 1, 'surname': 1, 'kafeteria_name': 1, 'username': 1, 'password' : 1}))
@@ -197,4 +201,4 @@ def view_teachers_by_unv_dr(unv_dr_id):
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000, debug=False)
