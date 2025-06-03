@@ -8,7 +8,7 @@ import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000", "supports_credentials": True}})
+CORS(app)
 
 # MongoDB connection
 client = MongoClient('mongodb+srv://ziyodullasodiqov0105:aOP6DXujBayzD1Km@zsm.5so3iiu.mongodb.net/?retryWrites=true&w=majority&appName=ZSM')
