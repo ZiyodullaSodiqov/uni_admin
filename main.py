@@ -941,19 +941,32 @@ def create_patent():
 @app.route('/teacher/<teacher_id>/patents', methods=['GET'])
 def view_patents_by_teacher(teacher_id):
     try:
+        # 1. Check if teacher exists (as ObjectId)
         if not teachers.find_one({'_id': ObjectId(teacher_id)}):
             return jsonify({'error': 'Teacher not found'}), 404
+
+        # 2. Try BOTH ObjectId and string formats for teacher_id
+        query = {
+            "$or": [
+                {"teacher_id": ObjectId(teacher_id)},  # Case 1: Stored as ObjectId
+                {"teacher_id": teacher_id}              # Case 2: Stored as string
+            ]
+        }
+
         patent_list = list(patents.find(
-            {'teacher_id': ObjectId(teacher_id)},
+            query,
             {'_id': 1, 'patentsId': 1, 'authors': 1, 'patent_date': 1, 'teacher_id': 1}
         ))
+
+        # 3. Convert ObjectIds to strings
         for record in patent_list:
             record['_id'] = str(record['_id'])
             record['teacher_id'] = str(record['teacher_id'])
+
         return jsonify({'patents': patent_list}), 200
+
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
-
 @app.route('/patent/<id>', methods=['GET'])
 def get_patent(id):
     try:
@@ -1019,21 +1032,35 @@ def create_monografiya():
     log_operation('monografiya', 'POST', monografiya_id)
     return jsonify({'message': 'Monografiya created', 'id': str(monografiya_id)}), 201
 
+
+
 @app.route('/teacher/<teacher_id>/monografiyas', methods=['GET'])
 def view_monografiyas_by_teacher(teacher_id):
     try:
-        if not teachers.find_one({'_id': ObjectId(teacher_id)}):
-            return jsonify({'error': 'Teacher not found'}), 404
-        monografiya_list = list(monografiyas.find(
-            {'teacher_id': ObjectId(teacher_id)},
-            {'_id': 1, 'author_name': 1, 'Monografiya_name': 1, 'monografiya_date': 1, 'teacher_id': 1}
-        ))
+        # 1. Check if teacher exists (as ObjectId)
+        teacher = teachers.find_one({'_id': ObjectId(teacher_id)})
+        if not teacher:
+            return jsonify({"error": "Teacher not found"}), 404
+
+        # 2. Query monografiyas (teacher_id is stored as STRING, not ObjectId)
+        monografiya_list = list(monografiyas.find({'teacher_id': teacher_id}))  # <- FIXED HERE
+
+        # 3. Process results
+        result = []
         for record in monografiya_list:
-            record['_id'] = str(record['_id'])
-            record['teacher_id'] = str(record['teacher_id'])
-        return jsonify({'monografiyas': monografiya_list}), 200
+            result.append({
+                "_id": str(record["_id"]),
+                "teacher_id": record["teacher_id"],  # Already a string
+                "author_name": record.get("author_name"),
+                "Monografiya_name": record.get("Monografiya_name"),
+                "monografiya_date": record.get("monografiya_date")
+            })
+
+        return jsonify({"monografiyas": result}), 200
+
     except Exception as e:
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+    
 
 @app.route('/monografiya/<id>', methods=['GET'])
 def get_monografiya(id):
@@ -1162,6 +1189,9 @@ def view_teachers_by_unv_dr(unv_dr_id):
         return jsonify({'teachers': teacher_list}), 200
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+    
+all_monografiyas = list(monografiyas.find({}))
+print("All monografiyas:", all_monografiyas)  # Debug log
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000, debug=False)
